@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>TOTP code in browser</title>
+    <script src="jsOTP.min.js"></script>
+    <script src="totp_in_browser.js"></script>
+</head>
+
+<body>
+    <h1>TOTP code in browser</h1>
+    <p id="codes"></p>
+    <form id="form">
+        <input name="identifier" placeholder="Identifier...">
+        <input name="totpCode" placeholder="TOTP Code...">
+        <button type="submit">Add</button>
+    </form>
+    <button id="clear">Clear</button>
+    <script>
+        document.getElementById('form').onsubmit = submit;
+        document.getElementById('clear').onclick = clear;
+        let totpCodes = read_totp();
+        if (totpCodes) {
+            update_codes();
+            interval = window.setInterval(update_codes, 1000);
+        }
+    </script>
+</body>
+
+</html>
