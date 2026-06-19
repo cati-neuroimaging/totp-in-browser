@@ -45,6 +45,7 @@ function clear(event) {
         window.clearInterval(interval);
     }
     location.reload(false);
+    hideWarning();
 }
 
 function remove_code(id) {
@@ -57,8 +58,8 @@ function remove_code(id) {
     location.reload(false);
 }
 
-function remove_button(button) {
-    remove_code(button.name);
+function remove_button(id) {
+    showRemoveWarning(unescape(id));
 }
 
 function update_codes(event) {
@@ -67,7 +68,7 @@ function update_codes(event) {
     let html = '';
     for (id in totpCodes) {
         let code = totp.getOtp(totpCodes[id]);
-        html += id + " : <b>" + code + '</b> <button name="' + escape(id) + '" onclick="remove_button(this);"><font color="red">x</font></button><br>\n';
+        html += id + " : <b>" + code + '</b> <button class="remove-btn" onclick="remove_button(\'' + escape(id) + '\');">✕</button><br>\n';
     }
     let codes = document.getElementById('codes');
     if (codes.innerHTML != html) {

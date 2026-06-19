@@ -6,26 +6,190 @@
     <title>TOTP code in browser</title>
     <script src="jsOTP.min.js"></script>
     <script src="totp_in_browser.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .info-icon {
+            display: inline-block;
+            color: #2196F3;
+            font-size: 14px;
+            font-weight: bold;
+            margin-left: 5px;
+            cursor: help;
+            position: relative;
+            vertical-align: middle;
+            border: 2px solid #2196F3;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            text-align: center;
+            line-height: 14px;
+        }
+        .info-icon:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: normal;
+            white-space: nowrap;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        .info-icon:hover::before {
+            content: '';
+            position: absolute;
+            bottom: 115%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: #333;
+            z-index: 1000;
+        }
+        #codes {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #2196F3;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            opacity: 0.8;
+        }
+        .remove-btn {
+            background-color: #f44336;
+            padding: 5px 10px;
+            margin-left: 5px;
+            font-size: 12px;
+        }
+        #clear {
+            background-color: #f44336;
+            width: 100%;
+            padding: 10px;
+        }
+        #removeWarning {
+            display: none;
+            background-color: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #ef9a9a;
+        }
+        #removeWarning.show {
+            display: block;
+        }
+        .warning {
+            display: none;
+            background-color: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #ef9a9a;
+        }
+        .warning.show {
+            display: block;
+        }
+    </style>
 </head>
 
 <body>
-    <h1>TOTP code in browser</h1>
+    <h1>TOTP code in browser <span class="info-icon" data-tooltip="Please note that since the TOTPs are stored locally, they may be lost if your browser data is cleared or if you use a different device or browser.">i</span></h1>
     <p id="codes"></p>
-    <form id="form">
-        <input name="identifier" placeholder="Identifier...">
-        <input name="totpCode" placeholder="TOTP Code...">
-        <button type="submit">Add</button>
-    </form>
+<div id="removeWarning" class="warning">
+    Are you sure you want to remove this TOTP code? This action cannot be undone.
+    <button id="confirmRemove">Yes, remove</button>
+    <button id="cancelRemove">Cancel</button>
+</div>
+<div id="warning" class="warning">
+    Are you sure you want to clear all TOTP codes? This action cannot be undone.
+    <button id="confirmClear">Yes, clear all</button>
+    <button id="cancelClear">Cancel</button>
+</div>
+<form id="form">
+    <input name="identifier" placeholder="Identifier...">
+    <input name="totpCode" placeholder="TOTP Code...">
+    <button type="submit">Add</button>
+</form>
     <button id="clear">Clear</button>
-    <script>
-        document.getElementById('form').onsubmit = submit;
-        document.getElementById('clear').onclick = clear;
-        let totpCodes = read_totp();
-        if (totpCodes) {
-            update_codes();
-            interval = window.setInterval(update_codes, 1000);
+<script>
+    document.getElementById('form').onsubmit = submit;
+    document.getElementById('clear').onclick = showWarning;
+    document.getElementById('confirmClear').onclick = clear;
+    document.getElementById('cancelClear').onclick = hideWarning;
+    document.getElementById('confirmRemove').onclick = confirmRemoveCode;
+    document.getElementById('cancelRemove').onclick = hideRemoveWarning;
+    let totpCodes = read_totp();
+    if (totpCodes) {
+        update_codes();
+        interval = window.setInterval(update_codes, 1000);
+    }
+    let pendingRemoveId = null;
+
+    function showWarning() {
+        document.getElementById('warning').classList.add('show');
+    }
+
+    function hideWarning() {
+        document.getElementById('warning').classList.remove('show');
+    }
+
+    function showRemoveWarning(id) {
+        pendingRemoveId = id;
+        document.getElementById('removeWarning').classList.add('show');
+    }
+
+    function hideRemoveWarning() {
+        document.getElementById('removeWarning').classList.remove('show');
+        pendingRemoveId = null;
+    }
+
+    function confirmRemoveCode() {
+        if (pendingRemoveId !== null) {
+            remove_code(pendingRemoveId);
         }
-    </script>
+        hideRemoveWarning();
+    }
+</script>
 </body>
 
 </html>
